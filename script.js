@@ -17,22 +17,17 @@ async function initFFmpeg() {
     const { FFmpeg } = window.FFmpegWASM;
     ffmpeg = new FFmpeg();
     
-    // Listen to log output for debugging
     ffmpeg.on('log', ({ message }) => {
         console.log(message);
     });
 
     try {
         console.log("Loading FFmpeg.wasm...");
-        
-        // Dynamically resolve the absolute URL based on your local server's root
         const baseURL = new URL('.', window.location.href).href;
-        
         await ffmpeg.load({
             coreURL: new URL('assets/ffmpeg-core.js', baseURL).href,
             wasmURL: new URL('assets/ffmpeg-core.wasm', baseURL).href,
         });
-        
         console.log("FFmpeg loaded successfully!");
     } catch (e) {
         console.error("Error loading FFmpeg:", e);
@@ -54,7 +49,6 @@ imageUpload.addEventListener('change', (e) => {
             cropper.destroy();
         }
 
-        // Initialize Cropper.js (force 1:1 Square Aspect Ratio)
         cropper = new Cropper(imageToCrop, {
             aspectRatio: 1,
             viewMode: 1,
@@ -90,19 +84,20 @@ processBtn.addEventListener('click', async () => {
     try {
         const { fetchFile } = window.FFmpegUtil;
 
-        // A. Get the cropped image data as a Blob
+        // A. Get the cropped image data as a PNG (preserves transparency/quality)
         const croppedCanvas = cropper.getCroppedCanvas({
             width: 720,
             height: 720
         });
         
         const croppedBlob = await new Promise(resolve => {
-            croppedCanvas.toBlob(resolve, 'image/jpeg');
+            // FIX 1: Export as PNG instead of JPEG
+            croppedCanvas.toBlob(resolve, 'image/png');
         });
 
         // B. Write files to FFmpeg virtual file system
         const baseURL = new URL('.', window.location.href).href;
-        await ffmpeg.writeFile('bg.jpg', await fetchFile(croppedBlob));
+        await ffmpeg.writeFile('bg.png', await fetchFile(croppedBlob));
         await ffmpeg.writeFile('tomato.gif', await fetchFile(new URL('assets/tomato-throw.gif', baseURL).href));
 
         // C. Calculate speed and zoom manipulation
@@ -110,17 +105,16 @@ processBtn.addEventListener('click', async () => {
         const ptsFactor = 1 / speed;
         
         const zoom = parseFloat(zoomSlider.value);
-        const gifSize = Math.round(720 * zoom); // Calculate new size based on zoom
+        const gifSize = Math.round(720 * zoom);
 
-        // D. Execute FFmpeg Command
-        // We updated the overlay coordinates to (W-w)/2:(H-h)/2 to keep it centered
-        // no matter how much larger or smaller the GIF is compared to the background.
+        // D. Execute FFmpeg Command with High-Quality Palette Generation
+        // FIX 2: We use split, palettegen, and paletteuse to create a clean 256-color palette
+        // so that edges stay crisp and we don't get yellow/green artifacts.
         await ffmpeg.exec([
             '-loop', '1',
-            '-i', 'bg.jpg',
+            '-i', 'bg.png',
             '-i', 'tomato.gif',
-            '-filter_complex', `[1:v]setpts=${ptsFactor}*PTS,scale=${gifSize}:${gifSize}[gif_scaled];[0:v][gif_scaled]overlay=(W-w)/2:(H-h)/2:format=auto:shortest=1`,
-            '-gifflags', '+transdiff',
+            '-filter_complex', `[1:v]setpts=${ptsFactor}*PTS,scale=${gifSize}:${gifSize}[gif_scaled];[0:v][gif_scaled]overlay=(W-w)/2:(H-h)/2:format=auto:shortest=1[composed];[composed]split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse`,
             '-y', 'output.gif'
         ]);
 
