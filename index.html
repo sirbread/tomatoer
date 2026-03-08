@@ -12,52 +12,68 @@
     <div class="container">
         <h1>Tomato Throw Overlay Generator</h1>
         
-        <div class="control-panel">
-            <div class="step">
-                <h3>1. Upload Image</h3>
-                <input type="file" id="imageUpload" accept="image/png, image/jpeg, image/jpg">
-            </div>
+        <!-- STEP 1: Upload -->
+        <div id="step1" class="panel active-step">
+            <h2>1. Upload an Image</h2>
+            <p class="subtitle">Select the background image to begin.</p>
+            <input type="file" id="imageUpload" accept="image/png, image/jpeg, image/jpg">
+        </div>
 
-            <div class="step">
-                <h3>2. Controls</h3>
-                <label for="speedSlider">Speed: <span id="speedValue">1x</span></label>
-                <input type="range" id="speedSlider" min="0.25" max="10" step="0.25" value="1">
-                <br><br>
-                <label for="zoomSlider">Tomato Size: <span id="zoomValue">1x</span></label>
-                <input type="range" id="zoomSlider" min="0.25" max="5" step="0.25" value="1">
+        <!-- STEP 2: Crop -->
+        <div id="step2" class="panel hidden">
+            <h2>2. Crop Your Image</h2>
+            <p class="subtitle">Crop it to a perfect square.</p>
+            <div class="img-container">
+                <img id="imageToCrop" src="" alt="Upload an image to start">
+            </div>
+            <div class="button-group">
+                <button id="cancelUploadBtn" class="secondary-btn">Cancel</button>
+                <button id="confirmCropBtn">Confirm Crop</button>
             </div>
         </div>
 
-        <div class="workspace">
-            <!-- Step 1: Cropping -->
-            <div class="editor" id="cropSection">
-                <h3>3. Crop Workspace</h3>
-                <div class="img-container">
-                    <img id="imageToCrop" src="" alt="Upload an image to start">
+        <!-- STEP 3: Controls & Targeting -->
+        <div id="step3" class="panel hidden">
+            <h2>3. Configure & Target</h2>
+            <p class="subtitle">Set speed, size, and click where the tomato should land!</p>
+            
+            <div class="controls-row">
+                <div class="control-box">
+                    <label for="speedSlider">Tomato Speed: <span id="speedValue">1x</span></label>
+                    <input type="range" id="speedSlider" min="0.25" max="10" step="0.25" value="1">
                 </div>
-                <button id="confirmCropBtn" disabled>Confirm Crop</button>
-            </div>
-
-            <!-- Step 2: Targeting -->
-            <div class="editor hidden" id="targetSection">
-                <h3>4. Click to Target!</h3>
-                <p style="font-size: 14px; color: #aaa; margin-top: 0;">Click on the image to set where the tomato lands.</p>
-                <div class="target-container" id="targetContainer">
-                    <img id="targetImage" src="" alt="Cropped Result">
-                    <div id="targetMarker" class="target-marker"></div>
-                </div>
-                <div style="display: flex; gap: 10px; width: 100%;">
-                    <button id="backToCropBtn" style="background: #555;">Back to Crop</button>
-                    <button id="processBtn">Process & Overlay</button>
+                <div class="control-box">
+                    <label for="zoomSlider">Tomato Size: <span id="zoomValue">1x</span></label>
+                    <input type="range" id="zoomSlider" min="0.25" max="5" step="0.25" value="1">
                 </div>
             </div>
 
-            <!-- Step 3: Result -->
-            <div class="result">
-                <h3>Preview & Export</h3>
-                <div id="loading" class="hidden">Processing with FFmpeg... Please wait.</div>
-                <img id="outputPreview" class="hidden" alt="Final Output Preview">
-                <a id="downloadBtn" class="button hidden" download="tomato-overlay.gif">Download GIF</a>
+            <div class="target-container" id="targetContainer">
+                <img id="targetImage" src="" alt="Cropped Result">
+                <div id="targetMarker" class="target-marker"></div>
+            </div>
+
+            <div class="button-group">
+                <button id="backToCropBtn" class="secondary-btn">Back to Crop</button>
+                <button id="processBtn">Process Overlay</button>
+            </div>
+        </div>
+
+        <!-- STEP 4: Processing & Result -->
+        <div id="step4" class="panel hidden">
+            <h2>4. Result</h2>
+            
+            <div id="loading" class="hidden">
+                <div class="spinner"></div>
+                <p>Processing with FFmpeg... Please wait.</p>
+            </div>
+
+            <div id="resultContainer" class="hidden">
+                <img id="outputPreview" alt="Final Output Preview">
+                <div class="button-group">
+                    <button id="startOverBtn" class="secondary-btn">Start Over</button>
+                    <a id="downloadBtn" class="button" download="tomato-overlay.gif">Download GIF</a>
+                </div>
             </div>
         </div>
     </div>
