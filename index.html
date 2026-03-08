@@ -3,89 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tomato Throw Overlay</title>
-    <!-- Cropper.js CSS -->
+    <title>tomato throw overlay</title>
+    <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
-        <h1>Tomato Throw Overlay Generator</h1>
+        <h1>tomatoer</h1>
+        <h2 class="subtitle">throw tomatoes at stuff</h2>
         
-        <!-- STEP 1: Upload -->
         <div id="step1" class="panel active-step">
-            <h2>1. Upload an Image</h2>
-            <p class="subtitle">Select the background image to begin.</p>
-            <input type="file" id="imageUpload" accept="image/png, image/jpeg, image/jpg">
+            <h2>1. upload an image</h2>
+            <div id="dropzone" class="dropzone">
+                <p>drag and drop or upload image...</p>
+                <input type="file" id="imageUpload" accept="image/png, image/jpeg, image/jpg" class="hidden-input">
+            </div>
         </div>
 
-        <!-- STEP 2: Crop -->
         <div id="step2" class="panel hidden">
-            <h2>2. Crop Your Image</h2>
-            <p class="subtitle">Crop it to a perfect square.</p>
+            <h2>2. crop</h2>
             <div class="img-container">
-                <img id="imageToCrop" src="" alt="Upload an image to start">
+                <img id="imageToCrop" src="" alt="crop me">
             </div>
             <div class="button-group">
-                <button id="cancelUploadBtn" class="secondary-btn">Cancel</button>
-                <button id="confirmCropBtn">Confirm Crop</button>
+                <button id="cancelUploadBtn" class="secondary-btn">nvm, go back</button>
+                <button id="confirmCropBtn">yeah thats good</button>
             </div>
         </div>
 
-        <!-- STEP 3: Controls & Targeting -->
         <div id="step3" class="panel hidden">
-            <h2>3. Configure & Target</h2>
-            <p class="subtitle">Set speed, size, and click where the tomato should land!</p>
+            <h2>3. aim and tweak</h2>
+            <p>click the image to place the target throw</p>
             
             <div class="controls-row">
                 <div class="control-box">
-                    <label for="speedSlider">Tomato Speed: <span id="speedValue">1x</span></label>
+                    <label for="speedSlider">speed: <span id="speedValue">1x</span></label>
                     <input type="range" id="speedSlider" min="0.25" max="10" step="0.25" value="1">
                 </div>
                 <div class="control-box">
-                    <label for="zoomSlider">Tomato Size: <span id="zoomValue">1x</span></label>
+                    <label for="zoomSlider">size: <span id="zoomValue">1x</span></label>
                     <input type="range" id="zoomSlider" min="0.25" max="5" step="0.25" value="1">
                 </div>
             </div>
 
             <div class="target-container" id="targetContainer">
-                <img id="targetImage" src="" alt="Cropped Result">
+                <img id="targetImage" src="" alt="target area">
                 <div id="targetMarker" class="target-marker"></div>
             </div>
 
             <div class="button-group">
-                <button id="backToCropBtn" class="secondary-btn">Back to Crop</button>
-                <button id="processBtn">Process Overlay</button>
+                <button id="backToCropBtn" class="secondary-btn">wait go back</button>
+                <button id="processBtn">tomato!</button>
             </div>
         </div>
 
-        <!-- STEP 4: Processing & Result -->
         <div id="step4" class="panel hidden">
-            <h2>4. Result</h2>
+            <h2>4. tomatoerd</h2>
             
             <div id="loading" class="hidden">
                 <div class="spinner"></div>
-                <p>Processing with FFmpeg... Please wait.</p>
+                <p>one sec</p>
             </div>
 
             <div id="resultContainer" class="hidden">
-                <img id="outputPreview" alt="Final Output Preview">
+                <img id="outputPreview" alt="final output">
                 <div class="button-group">
-                    <button id="startOverBtn" class="secondary-btn">Start Over</button>
-                    <a id="downloadBtn" class="button" download="tomato-overlay.gif">Download GIF</a>
+                    <button id="startOverBtn" class="secondary-btn">run it back</button>
+                    <a id="downloadBtn" class="button" download="tomatoerd.gif">save gif</a>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Cropper.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
-    
-    <!-- 100% Local FFmpeg -->
     <script src="assets/ffmpeg.js"></script>
     <script src="assets/util.js"></script>
-    
-    <!-- Our Script -->
     <script src="script.js"></script>
 </body>
 </html>

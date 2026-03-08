@@ -5,14 +5,17 @@ let targetPosX = 50;
 let targetPosY = 50; 
 const BASE_MARKER_SIZE = 24;
 
-// Steps
+// steps
 const step1 = document.getElementById('step1');
 const step2 = document.getElementById('step2');
 const step3 = document.getElementById('step3');
 const step4 = document.getElementById('step4');
 
-// Elements
+// upload elements
+const dropzone = document.getElementById('dropzone');
 const imageUpload = document.getElementById('imageUpload');
+
+// other elements
 const imageToCrop = document.getElementById('imageToCrop');
 const confirmCropBtn = document.getElementById('confirmCropBtn');
 const cancelUploadBtn = document.getElementById('cancelUploadBtn');
@@ -20,49 +23,68 @@ const backToCropBtn = document.getElementById('backToCropBtn');
 const processBtn = document.getElementById('processBtn');
 const startOverBtn = document.getElementById('startOverBtn');
 
-// Sliders
+// sliders
 const speedSlider = document.getElementById('speedSlider');
 const speedValue = document.getElementById('speedValue');
 const zoomSlider = document.getElementById('zoomSlider');
 const zoomValue = document.getElementById('zoomValue');
 
-// Targeting Elements
+// targeting elements
 const targetContainer = document.getElementById('targetContainer');
 const targetImage = document.getElementById('targetImage');
 const targetMarker = document.getElementById('targetMarker');
 
-// Output
+// output
 const loading = document.getElementById('loading');
 const resultContainer = document.getElementById('resultContainer');
 const outputPreview = document.getElementById('outputPreview');
 const downloadBtn = document.getElementById('downloadBtn');
 
-// Helper to switch UI views
 function showStep(stepElement) {
     [step1, step2, step3, step4].forEach(el => el.classList.add('hidden'));
     stepElement.classList.remove('hidden');
 }
 
-// 1. Initialize FFmpeg
+// ffmpeg shtuff
 async function initFFmpeg() {
     const { FFmpeg } = window.FFmpegWASM;
     ffmpeg = new FFmpeg();
-    
     try {
         const baseURL = new URL('.', window.location.href).href;
         await ffmpeg.load({
             coreURL: new URL('assets/ffmpeg-core.js', baseURL).href,
             wasmURL: new URL('assets/ffmpeg-core.wasm', baseURL).href,
         });
-        console.log("FFmpeg loaded successfully!");
+        console.log("ffmpeg ready to roll");
     } catch (e) {
-        console.error("Error loading FFmpeg:", e);
-        alert("Failed to load FFmpeg. Check the console for details.");
+        console.error("ffmpeg failed:", e);
+        alert("ffmpeg broke. did you download the files?");
     }
 }
 initFFmpeg();
 
-// STEP 1 -> STEP 2: Handle Upload
+// drag n drop
+dropzone.addEventListener('click', () => imageUpload.click());
+
+dropzone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropzone.classList.add('dragover');
+});
+
+dropzone.addEventListener('dragleave', () => {
+    dropzone.classList.remove('dragover');
+});
+
+dropzone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropzone.classList.remove('dragover');
+    if (e.dataTransfer.files.length) {
+        imageUpload.files = e.dataTransfer.files;
+        imageUpload.dispatchEvent(new Event('change'));
+    }
+});
+
+// file reading shtuff
 imageUpload.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -72,26 +94,23 @@ imageUpload.addEventListener('change', (e) => {
         imageToCrop.src = event.target.result;
         
         if (cropper) { cropper.destroy(); }
+        showStep(step2);
 
-        showStep(step2); // Switch to Crop UI
-
-        // Initialize Cropper AFTER the element is visible
         cropper = new Cropper(imageToCrop, {
             aspectRatio: 1,
             viewMode: 1,
             autoCropArea: 1,
+            background: false
         });
     };
     reader.readAsDataURL(file);
 });
 
-// Cancel Upload (Back to Step 1)
 cancelUploadBtn.addEventListener('click', () => {
-    imageUpload.value = ''; // clear input
+    imageUpload.value = ''; 
     showStep(step1);
 });
 
-// Helper: Scale Marker
 function updateMarkerSize() {
     const zoom = parseFloat(zoomSlider.value);
     const newSize = BASE_MARKER_SIZE * zoom;
@@ -99,14 +118,12 @@ function updateMarkerSize() {
     targetMarker.style.height = `${newSize}px`;
 }
 
-// Update sliders
 speedSlider.addEventListener('input', (e) => speedValue.textContent = `${e.target.value}x`);
 zoomSlider.addEventListener('input', (e) => {
     zoomValue.textContent = `${e.target.value}x`;
     updateMarkerSize();
 });
 
-// STEP 2 -> STEP 3: Confirm Crop
 confirmCropBtn.addEventListener('click', () => {
     if (!cropper) return;
     
@@ -116,23 +133,18 @@ confirmCropBtn.addEventListener('click', () => {
         croppedBlob = blob;
         targetImage.src = URL.createObjectURL(blob);
         
-        // Reset Targeting state
         targetPosX = 50;
         targetPosY = 50;
         targetMarker.style.left = '50%';
         targetMarker.style.top = '50%';
         updateMarkerSize(); 
 
-        showStep(step3); // Move to Step 3
+        showStep(step3);
     }, 'image/png');
 });
 
-// Back to Step 2
-backToCropBtn.addEventListener('click', () => {
-    showStep(step2);
-});
+backToCropBtn.addEventListener('click', () => showStep(step2));
 
-// Handle Targeting Clicks
 targetContainer.addEventListener('click', (e) => {
     const rect = targetContainer.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -145,14 +157,10 @@ targetContainer.addEventListener('click', (e) => {
     targetMarker.style.top = `${targetPosY}%`;
 });
 
-// STEP 3 -> STEP 4: Process Overlay
 processBtn.addEventListener('click', async () => {
-    if (!ffmpeg || !ffmpeg.loaded) {
-        alert("Please wait for FFmpeg to finish loading.");
-        return;
-    }
+    if (!ffmpeg || !ffmpeg.loaded) return alert("ffmpeg is still loading, chill");
 
-    showStep(step4); // Move to result view
+    showStep(step4);
     loading.classList.remove('hidden');
     resultContainer.classList.add('hidden');
 
@@ -188,18 +196,16 @@ processBtn.addEventListener('click', async () => {
         outputPreview.src = outputUrl;
         downloadBtn.href = outputUrl;
 
-        // Hide loader, show result
         loading.classList.add('hidden');
         resultContainer.classList.remove('hidden');
 
     } catch (error) {
-        console.error("Processing failed:", error);
-        alert("Processing failed. Please check the console.");
-        showStep(step3); // Go back if error
+        console.error("processing failed:", error);
+        alert("something exploded, check console");
+        showStep(step3);
     }
 });
 
-// START OVER (Step 4 -> Step 1)
 startOverBtn.addEventListener('click', () => {
     imageUpload.value = '';
     showStep(step1);
