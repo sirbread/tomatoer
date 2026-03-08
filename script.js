@@ -1,8 +1,19 @@
 let cropper;
 let ffmpeg;
+let croppedBlob = null;
+let targetPosX = 50; // Default center (50%)
+let targetPosY = 50; // Default center (50%)
 
+// The base size of the visual marker when zoom is 1x
+const BASE_MARKER_SIZE = 24;
+
+// Elements
 const imageUpload = document.getElementById('imageUpload');
 const imageToCrop = document.getElementById('imageToCrop');
+const cropSection = document.getElementById('cropSection');
+const targetSection = document.getElementById('targetSection');
+const confirmCropBtn = document.getElementById('confirmCropBtn');
+const backToCropBtn = document.getElementById('backToCropBtn');
 const processBtn = document.getElementById('processBtn');
 
 // Sliders
@@ -10,10 +21,11 @@ const speedSlider = document.getElementById('speedSlider');
 const speedValue = document.getElementById('speedValue');
 const zoomSlider = document.getElementById('zoomSlider');
 const zoomValue = document.getElementById('zoomValue');
-const posXSlider = document.getElementById('posXSlider');
-const posXValue = document.getElementById('posXValue');
-const posYSlider = document.getElementById('posYSlider');
-const posYValue = document.getElementById('posYValue');
+
+// Targeting Elements
+const targetContainer = document.getElementById('targetContainer');
+const targetImage = document.getElementById('targetImage');
+const targetMarker = document.getElementById('targetMarker');
 
 // Output
 const loading = document.getElementById('loading');
@@ -63,21 +75,87 @@ imageUpload.addEventListener('change', (e) => {
             autoCropArea: 1,
         });
 
-        processBtn.disabled = false;
+        confirmCropBtn.disabled = false;
+        
+        // Reset UI if uploading a new image
+        cropSection.classList.remove('hidden');
+        targetSection.classList.add('hidden');
     };
     reader.readAsDataURL(file);
 });
 
-// Update slider labels
-speedSlider.addEventListener('input', (e) => speedValue.textContent = `${e.target.value}x`);
-zoomSlider.addEventListener('input', (e) => zoomValue.textContent = `${e.target.value}x`);
-posXSlider.addEventListener('input', (e) => posXValue.textContent = `${e.target.value}%`);
-posYSlider.addEventListener('input', (e) => posYValue.textContent = `${e.target.value}%`);
+// Helper function to dynamically scale the marker
+function updateMarkerSize() {
+    const zoom = parseFloat(zoomSlider.value);
+    const newSize = BASE_MARKER_SIZE * zoom;
+    targetMarker.style.width = `${newSize}px`;
+    targetMarker.style.height = `${newSize}px`;
+}
 
-// 3. Process the Image and GIF
+// Update slider labels and marker size
+speedSlider.addEventListener('input', (e) => speedValue.textContent = `${e.target.value}x`);
+
+zoomSlider.addEventListener('input', (e) => {
+    zoomValue.textContent = `${e.target.value}x`;
+    updateMarkerSize(); // Scale the circle live as the slider moves
+});
+
+// 3. Confirm Crop & Switch to Target View
+confirmCropBtn.addEventListener('click', () => {
+    if (!cropper) return;
+    
+    // Get cropped canvas
+    const croppedCanvas = cropper.getCroppedCanvas({
+        width: 720,
+        height: 720
+    });
+    
+    // Convert to blob and DataURL
+    croppedCanvas.toBlob((blob) => {
+        croppedBlob = blob;
+        targetImage.src = URL.createObjectURL(blob);
+        
+        // Switch views
+        cropSection.classList.add('hidden');
+        targetSection.classList.remove('hidden');
+        
+        // Reset marker to center and ensure correct starting size
+        targetPosX = 50;
+        targetPosY = 50;
+        targetMarker.style.left = '50%';
+        targetMarker.style.top = '50%';
+        updateMarkerSize(); 
+        
+    }, 'image/png');
+});
+
+// 4. Back to Crop View
+backToCropBtn.addEventListener('click', () => {
+    cropSection.classList.remove('hidden');
+    targetSection.classList.add('hidden');
+});
+
+// 5. Handle Targeting Clicks
+targetContainer.addEventListener('click', (e) => {
+    const rect = targetContainer.getBoundingClientRect();
+    
+    // Calculate click position relative to the container
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    // Convert to percentages
+    targetPosX = (x / rect.width) * 100;
+    targetPosY = (y / rect.height) * 100;
+    
+    // Move visual marker
+    targetMarker.style.left = `${targetPosX}%`;
+    targetMarker.style.top = `${targetPosY}%`;
+});
+
+// 6. Process the Image and GIF
 processBtn.addEventListener('click', async () => {
-    if (!cropper || !ffmpeg || !ffmpeg.loaded) {
-        alert("Please wait for FFmpeg to load and select an image.");
+    if (!croppedBlob || !ffmpeg || !ffmpeg.loaded) {
+        alert("Please wait for FFmpeg to load and ensure you have cropped the image.");
         return;
     }
 
@@ -85,44 +163,30 @@ processBtn.addEventListener('click', async () => {
     outputPreview.classList.add('hidden');
     downloadBtn.classList.add('hidden');
     processBtn.disabled = true;
+    backToCropBtn.disabled = true;
 
     try {
         const { fetchFile } = window.FFmpegUtil;
 
-        // A. Get the cropped image data as a PNG
-        const croppedCanvas = cropper.getCroppedCanvas({
-            width: 720,
-            height: 720
-        });
-        
-        const croppedBlob = await new Promise(resolve => {
-            croppedCanvas.toBlob(resolve, 'image/png');
-        });
-
-        // B. Write files to FFmpeg virtual file system
+        // A. Write files to FFmpeg virtual file system
         const baseURL = new URL('.', window.location.href).href;
         await ffmpeg.writeFile('bg.png', await fetchFile(croppedBlob));
         await ffmpeg.writeFile('tomato.gif', await fetchFile(new URL('assets/tomato-throw.gif', baseURL).href));
 
-        // C. Calculate speed, zoom, and positioning
+        // B. Calculate speed, zoom, and positioning
         const speed = parseFloat(speedSlider.value);
         const ptsFactor = 1 / speed;
         
         const zoom = parseFloat(zoomSlider.value);
         const gifSize = Math.round(720 * zoom);
 
-        const posX = parseFloat(posXSlider.value); // 0 to 100
-        const posY = parseFloat(posYSlider.value); // 0 to 100
+        // Calculate exact pixel coordinates for the overlay based on our clicks
+        const targetPixelX = (720 * (targetPosX / 100));
+        const targetPixelY = (720 * (targetPosY / 100));
+        const overlayX = Math.round(targetPixelX - (gifSize / 2));
+        const overlayY = Math.round(targetPixelY - (gifSize / 2));
 
-        // Calculate exact pixel coordinates for the overlay
-        // 720 is the background width/height. We center the scaled GIF on the requested percentage coordinate.
-        const targetX = (720 * (posX / 100));
-        const targetY = (720 * (posY / 100));
-        const overlayX = Math.round(targetX - (gifSize / 2));
-        const overlayY = Math.round(targetY - (gifSize / 2));
-
-        // D. Execute FFmpeg Command
-        // We injected ${overlayX}:${overlayY} into the overlay filter
+        // C. Execute FFmpeg Command
         await ffmpeg.exec([
             '-loop', '1',
             '-i', 'bg.png',
@@ -131,7 +195,7 @@ processBtn.addEventListener('click', async () => {
             '-y', 'output.gif'
         ]);
 
-        // E. Read the output file and display it
+        // D. Read the output file and display it
         const data = await ffmpeg.readFile('output.gif');
         const outputBlob = new Blob([data.buffer], { type: 'image/gif' });
         const outputUrl = URL.createObjectURL(outputBlob);
@@ -148,5 +212,6 @@ processBtn.addEventListener('click', async () => {
     } finally {
         loading.classList.add('hidden');
         processBtn.disabled = false;
+        backToCropBtn.disabled = false;
     }
 });
