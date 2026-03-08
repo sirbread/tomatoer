@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tomato Throw Overlay</title>
+    <!-- Cropper.js CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Tomato Throw Overlay Generator</h1>
+        
+        <div class="control-panel">
+            <div class="step">
+                <h3>1. Upload Image</h3>
+                <input type="file" id="imageUpload" accept="image/png, image/jpeg, image/jpg">
+            </div>
+
+            <div class="step">
+                <h3>2. Speed Control</h3>
+                <label for="speedSlider">Tomato Throw Speed: <span id="speedValue">1x</span></label>
+                <input type="range" id="speedSlider" min="0.5" max="3" step="0.1" value="1">
+            </div>
+        </div>
+
+        <div class="workspace">
+            <div class="editor">
+                <h3>Crop Workspace</h3>
+                <div class="img-container">
+                    <img id="imageToCrop" src="" alt="Upload an image to start">
+                </div>
+                <button id="processBtn" disabled>Process & Overlay</button>
+            </div>
+
+            <div class="result">
+                <h3>Preview & Export</h3>
+                <div id="loading" class="hidden">Processing with FFmpeg... Please wait.</div>
+                <img id="outputPreview" class="hidden" alt="Final Output Preview">
+                <a id="downloadBtn" class="button hidden" download="tomato-overlay.gif">Download GIF</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cropper.js (Safe to load from CDN as it doesn't use Web Workers) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
+    
+    <!-- 100% Local FFmpeg to prevent CORS/Worker Security Errors -->
+    <script src="assets/ffmpeg.js"></script>
+    <script src="assets/util.js"></script>
+    
+    <!-- Our Script -->
+    <script src="script.js"></script>
+</body>
+</html>

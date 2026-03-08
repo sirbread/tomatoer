@@ -1,0 +1,119 @@
+:root {
+    --primary: #ff6347; /* Tomato color */
+    --bg: #1e1e2e;
+    --panel: #2a2a3c;
+    --text: #ffffff;
+}
+
+body {
+    font-family: system-ui, -apple-system, sans-serif;
+    background-color: var(--bg);
+    color: var(--text);
+    margin: 0;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+h1 {
+    text-align: center;
+    color: var(--primary);
+}
+
+.control-panel {
+    display: flex;
+    gap: 20px;
+    background: var(--panel);
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.step {
+    flex: 1;
+}
+
+.workspace {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.editor, .result {
+    flex: 1;
+    min-width: 300px;
+    background: var(--panel);
+    padding: 20px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.img-container {
+    width: 100%;
+    max-width: 400px;
+    height: 400px;
+    background: #000;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+img {
+    max-width: 100%;
+}
+
+button, .button {
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    font-size: 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none;
+    text-align: center;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+button:disabled {
+    background-color: #555;
+    cursor: not-allowed;
+}
+
+button:hover:not(:disabled), .button:hover {
+    background-color: #ff4500;
+}
+
+input[type=range] {
+    width: 100%;
+    margin-top: 10px;
+}
+
+.hidden {
+    display: none !important;
+}
+
+#outputPreview {
+    width: 100%;
+    max-width: 400px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+#loading {
+    color: #ffcc00;
+    font-weight: bold;
+    animation: blink 1s infinite alternate;
+}
+
+@keyframes blink {
+    from { opacity: 1; }
+    to { opacity: 0.5; }
+}
