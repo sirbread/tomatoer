@@ -6,6 +6,8 @@ const imageToCrop = document.getElementById('imageToCrop');
 const processBtn = document.getElementById('processBtn');
 const speedSlider = document.getElementById('speedSlider');
 const speedValue = document.getElementById('speedValue');
+const zoomSlider = document.getElementById('zoomSlider');
+const zoomValue = document.getElementById('zoomValue');
 const loading = document.getElementById('loading');
 const outputPreview = document.getElementById('outputPreview');
 const downloadBtn = document.getElementById('downloadBtn');
@@ -64,9 +66,13 @@ imageUpload.addEventListener('change', (e) => {
     reader.readAsDataURL(file);
 });
 
-// Update speed label
+// Update slider labels
 speedSlider.addEventListener('input', (e) => {
     speedValue.textContent = `${e.target.value}x`;
+});
+
+zoomSlider.addEventListener('input', (e) => {
+    zoomValue.textContent = `${e.target.value}x`;
 });
 
 // 3. Process the Image and GIF
@@ -99,16 +105,21 @@ processBtn.addEventListener('click', async () => {
         await ffmpeg.writeFile('bg.jpg', await fetchFile(croppedBlob));
         await ffmpeg.writeFile('tomato.gif', await fetchFile(new URL('assets/tomato-throw.gif', baseURL).href));
 
-        // C. Calculate speed manipulation
+        // C. Calculate speed and zoom manipulation
         const speed = parseFloat(speedSlider.value);
         const ptsFactor = 1 / speed;
+        
+        const zoom = parseFloat(zoomSlider.value);
+        const gifSize = Math.round(720 * zoom); // Calculate new size based on zoom
 
         // D. Execute FFmpeg Command
+        // We updated the overlay coordinates to (W-w)/2:(H-h)/2 to keep it centered
+        // no matter how much larger or smaller the GIF is compared to the background.
         await ffmpeg.exec([
-            '-loop', '1',               // FIX: Loop the background image infinitely
+            '-loop', '1',
             '-i', 'bg.jpg',
             '-i', 'tomato.gif',
-            '-filter_complex', `[1:v]setpts=${ptsFactor}*PTS,scale=720:720[gif_scaled];[0:v][gif_scaled]overlay=format=auto:shortest=1`,
+            '-filter_complex', `[1:v]setpts=${ptsFactor}*PTS,scale=${gifSize}:${gifSize}[gif_scaled];[0:v][gif_scaled]overlay=(W-w)/2:(H-h)/2:format=auto:shortest=1`,
             '-gifflags', '+transdiff',
             '-y', 'output.gif'
         ]);
