@@ -4,10 +4,18 @@ let ffmpeg;
 const imageUpload = document.getElementById('imageUpload');
 const imageToCrop = document.getElementById('imageToCrop');
 const processBtn = document.getElementById('processBtn');
+
+// Sliders
 const speedSlider = document.getElementById('speedSlider');
 const speedValue = document.getElementById('speedValue');
 const zoomSlider = document.getElementById('zoomSlider');
 const zoomValue = document.getElementById('zoomValue');
+const posXSlider = document.getElementById('posXSlider');
+const posXValue = document.getElementById('posXValue');
+const posYSlider = document.getElementById('posYSlider');
+const posYValue = document.getElementById('posYValue');
+
+// Output
 const loading = document.getElementById('loading');
 const outputPreview = document.getElementById('outputPreview');
 const downloadBtn = document.getElementById('downloadBtn');
@@ -61,13 +69,10 @@ imageUpload.addEventListener('change', (e) => {
 });
 
 // Update slider labels
-speedSlider.addEventListener('input', (e) => {
-    speedValue.textContent = `${e.target.value}x`;
-});
-
-zoomSlider.addEventListener('input', (e) => {
-    zoomValue.textContent = `${e.target.value}x`;
-});
+speedSlider.addEventListener('input', (e) => speedValue.textContent = `${e.target.value}x`);
+zoomSlider.addEventListener('input', (e) => zoomValue.textContent = `${e.target.value}x`);
+posXSlider.addEventListener('input', (e) => posXValue.textContent = `${e.target.value}%`);
+posYSlider.addEventListener('input', (e) => posYValue.textContent = `${e.target.value}%`);
 
 // 3. Process the Image and GIF
 processBtn.addEventListener('click', async () => {
@@ -84,14 +89,13 @@ processBtn.addEventListener('click', async () => {
     try {
         const { fetchFile } = window.FFmpegUtil;
 
-        // A. Get the cropped image data as a PNG (preserves transparency/quality)
+        // A. Get the cropped image data as a PNG
         const croppedCanvas = cropper.getCroppedCanvas({
             width: 720,
             height: 720
         });
         
         const croppedBlob = await new Promise(resolve => {
-            // FIX 1: Export as PNG instead of JPEG
             croppedCanvas.toBlob(resolve, 'image/png');
         });
 
@@ -100,21 +104,30 @@ processBtn.addEventListener('click', async () => {
         await ffmpeg.writeFile('bg.png', await fetchFile(croppedBlob));
         await ffmpeg.writeFile('tomato.gif', await fetchFile(new URL('assets/tomato-throw.gif', baseURL).href));
 
-        // C. Calculate speed and zoom manipulation
+        // C. Calculate speed, zoom, and positioning
         const speed = parseFloat(speedSlider.value);
         const ptsFactor = 1 / speed;
         
         const zoom = parseFloat(zoomSlider.value);
         const gifSize = Math.round(720 * zoom);
 
-        // D. Execute FFmpeg Command with High-Quality Palette Generation
-        // FIX 2: We use split, palettegen, and paletteuse to create a clean 256-color palette
-        // so that edges stay crisp and we don't get yellow/green artifacts.
+        const posX = parseFloat(posXSlider.value); // 0 to 100
+        const posY = parseFloat(posYSlider.value); // 0 to 100
+
+        // Calculate exact pixel coordinates for the overlay
+        // 720 is the background width/height. We center the scaled GIF on the requested percentage coordinate.
+        const targetX = (720 * (posX / 100));
+        const targetY = (720 * (posY / 100));
+        const overlayX = Math.round(targetX - (gifSize / 2));
+        const overlayY = Math.round(targetY - (gifSize / 2));
+
+        // D. Execute FFmpeg Command
+        // We injected ${overlayX}:${overlayY} into the overlay filter
         await ffmpeg.exec([
             '-loop', '1',
             '-i', 'bg.png',
             '-i', 'tomato.gif',
-            '-filter_complex', `[1:v]setpts=${ptsFactor}*PTS,scale=${gifSize}:${gifSize}[gif_scaled];[0:v][gif_scaled]overlay=(W-w)/2:(H-h)/2:format=auto:shortest=1[composed];[composed]split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse`,
+            '-filter_complex', `[1:v]setpts=${ptsFactor}*PTS,scale=${gifSize}:${gifSize}[gif_scaled];[0:v][gif_scaled]overlay=${overlayX}:${overlayY}:format=auto:shortest=1[composed];[composed]split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse`,
             '-y', 'output.gif'
         ]);
 
