@@ -4,6 +4,7 @@ let croppedBlob = null;
 let targetPosX = 50; 
 let targetPosY = 50; 
 const BASE_MARKER_SIZE = 24;
+const FINAL_DURATION_PADDING_SECONDS = 0.05;
 let throwMode = 'single';
 let multiThrowType = 'synced';
 let throwQueue = [];
@@ -324,7 +325,7 @@ processBtn.addEventListener('click', async () => {
         });
 
         const maxDelay = throwPlan.reduce((maxValue, throwPoint) => Math.max(maxValue, throwPoint.delay || 0), 0);
-        const finalDuration = (maxDelay + tomatoGifDurationSeconds + 0.05).toFixed(3);
+        const finalDuration = (maxDelay + tomatoGifDurationSeconds + FINAL_DURATION_PADDING_SECONDS).toFixed(3);
         const finalComposite = `comp_${throwPlan.length - 1}`;
         filterParts.push(`[${finalComposite}]trim=duration=${finalDuration},setpts=PTS-STARTPTS[composed]`);
         filterParts.push('[composed]split[s0][s1]');
