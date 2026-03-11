@@ -34,7 +34,25 @@
 
         <div id="step3" class="panel hidden">
             <h2>3. aim and tweak</h2>
-            <p>click the image to place the target throw</p>
+            <p id="targetHelpText">click the image to place the target throw</p>
+
+            <div class="controls-row single-control-row">
+                <div class="control-box">
+                    <label>throws:</label>
+                    <div class="mode-row">
+                        <button id="singleModeBtn" type="button" class="mode-btn active">1 tomato</button>
+                        <button id="multiModeBtn" type="button" class="mode-btn">more than 1</button>
+                    </div>
+                    <div id="multiOptions" class="hidden">
+                        <label for="multiTypeSelect">multi throw type:</label>
+                        <select id="multiTypeSelect">
+                            <option value="synced">synced</option>
+                            <option value="live">live</option>
+                        </select>
+                        <button id="clearThrowsBtn" type="button" class="secondary-btn clear-btn hidden">clear throws</button>
+                    </div>
+                </div>
+            </div>
             
             <div class="controls-row">
                 <div class="control-box">
@@ -50,6 +68,7 @@
             <div class="target-container" id="targetContainer">
                 <img id="targetImage" src="" alt="target area">
                 <div id="targetMarker" class="target-marker"></div>
+                <div id="throwMarkers" class="throw-markers"></div>
             </div>
 
             <div class="button-group">
