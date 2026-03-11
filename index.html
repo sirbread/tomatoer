@@ -32,8 +32,48 @@
             </div>
         </div>
 
+        <div id="step2b" class="panel hidden">
+            <h2>3. how many tomatoes?</h2>
+            <p>do you want to throw 1 tomato or more than 1?</p>
+            <div class="button-group">
+                <button id="backFromCountBtn" class="secondary-btn">wait go back</button>
+                <button id="oneTomaBtn">just 1</button>
+                <button id="manyTomaBtn">more than 1</button>
+            </div>
+        </div>
+
+        <div id="step2c" class="panel hidden">
+            <h2>4. how do you want to throw?</h2>
+            <div class="mode-options">
+                <button id="syncedModeBtn" class="mode-btn">
+                    <span class="mode-title">synced</span>
+                    <span class="mode-desc">8 tomatoes land all at once, scattered across the image</span>
+                </button>
+                <button id="liveModeBtn" class="mode-btn">
+                    <span class="mode-title">live</span>
+                    <span class="mode-desc">tap to place tomatoes one by one — timing and order are recorded</span>
+                </button>
+            </div>
+            <div class="button-group" style="margin-top: 20px;">
+                <button id="backFromModeBtn" class="secondary-btn">wait go back</button>
+            </div>
+        </div>
+
+        <div id="step2d" class="panel hidden">
+            <h2>5. tap to throw</h2>
+            <p>tap the image to place tomatoes. <span id="tapCount">0 taps recorded</span></p>
+            <div class="target-container" id="liveContainer">
+                <img id="liveImage" src="" alt="tap here to throw tomatoes">
+            </div>
+            <div class="button-group">
+                <button id="backFromLiveBtn" class="secondary-btn">wait go back</button>
+                <button id="clearTapsBtn" class="secondary-btn">clear taps</button>
+                <button id="generateLiveBtn" disabled>tomato!</button>
+            </div>
+        </div>
+
         <div id="step3" class="panel hidden">
-            <h2>3. aim and tweak</h2>
+            <h2>4. aim and tweak</h2>
             <p>click the image to place the target throw</p>
             
             <div class="controls-row">
