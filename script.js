@@ -176,7 +176,7 @@ function renderQueuedThrows() {
 function getGifDurationSeconds(gifData) {
     let totalDelayHundredths = 0;
 
-    for (let i = 0; i < gifData.length - 7; i += 1) {
+    for (let i = 0; i <= gifData.length - 8; i += 1) {
         if (gifData[i] === 0x21 && gifData[i + 1] === 0xF9 && gifData[i + 2] === 0x04) {
             const delay = gifData[i + 4] + (gifData[i + 5] << 8);
             totalDelayHundredths += delay;
@@ -304,6 +304,11 @@ processBtn.addEventListener('click', async () => {
         const tomatoGifDurationSeconds = getGifDurationSeconds(tomatoGifData) * ptsFactor;
 
         const filterParts = [];
+        if (throwPlan.length > 1) {
+            const splitOutputs = throwPlan.map((_, index) => `[gif_src_${index}]`).join('');
+            filterParts.push(`[1:v]split=${throwPlan.length}${splitOutputs}`);
+        }
+
         throwPlan.forEach((throwPoint, index) => {
             const targetPixelX = (720 * (throwPoint.x / 100));
             const targetPixelY = (720 * (throwPoint.y / 100));
@@ -311,7 +316,8 @@ processBtn.addEventListener('click', async () => {
             const overlayY = Math.round(targetPixelY - (gifSize / 2));
             const streamLabel = `gif_${index}`;
             const delayShift = throwPoint.delay > 0 ? `+${throwPoint.delay.toFixed(3)}/TB` : '';
-            filterParts.push(`[1:v]setpts=${ptsFactor}*PTS${delayShift},scale=${gifSize}:${gifSize}[${streamLabel}]`);
+            const sourceLabel = throwPlan.length > 1 ? `gif_src_${index}` : '1:v';
+            filterParts.push(`[${sourceLabel}]setpts=${ptsFactor}*PTS${delayShift},scale=${gifSize}:${gifSize}[${streamLabel}]`);
             const previousLabel = index === 0 ? '0:v' : `comp_${index - 1}`;
             const composedLabel = `comp_${index}`;
             filterParts.push(`[${previousLabel}][${streamLabel}]overlay=${overlayX}:${overlayY}:format=auto:eof_action=pass[${composedLabel}]`);
