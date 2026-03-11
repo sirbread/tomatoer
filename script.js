@@ -4,6 +4,7 @@ let croppedBlob = null;
 let targetPosX = 50; 
 let targetPosY = 50; 
 const BASE_MARKER_SIZE = 24;
+// tiny buffer so the last tomato frame does not get trimmed early
 const FINAL_DURATION_PADDING_SECONDS = 0.05;
 let throwMode = 'single';
 let multiThrowType = 'synced';
@@ -324,7 +325,7 @@ processBtn.addEventListener('click', async () => {
             filterParts.push(`[${previousLabel}][${streamLabel}]overlay=${overlayX}:${overlayY}:format=auto:eof_action=pass[${composedLabel}]`);
         });
 
-        const maxDelay = throwPlan.reduce((maxValue, throwPoint) => Math.max(maxValue, throwPoint.delay || 0), 0);
+        const maxDelay = throwPlan.reduce((currentMaxDelay, throwPoint) => Math.max(currentMaxDelay, throwPoint.delay || 0), 0);
         const finalDuration = (maxDelay + tomatoGifDurationSeconds + FINAL_DURATION_PADDING_SECONDS).toFixed(3);
         const finalComposite = `comp_${throwPlan.length - 1}`;
         filterParts.push(`[${finalComposite}]trim=duration=${finalDuration},setpts=PTS-STARTPTS[composed]`);
