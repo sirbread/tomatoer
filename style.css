@@ -114,6 +114,22 @@ p {
     left: 50%;
 }
 
+.throw-markers {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.queued-marker {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border: 3px solid var(--tomato);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    background: transparent;
+}
+
 img { max-width: 100%; }
 
 .controls-row {
@@ -123,12 +139,58 @@ img { max-width: 100%; }
     margin-bottom: 25px;
 }
 
+.single-control-row {
+    margin-bottom: 15px;
+}
+
 .control-box {
     flex: 1;
     text-align: left;
     border: 2px solid var(--tomato);
     padding: 15px;
     box-sizing: border-box;
+}
+
+.mode-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.mode-btn {
+    flex: 1;
+    font-size: 1rem;
+    padding: 10px 12px;
+}
+
+.mode-btn.active {
+    background-color: var(--tomato);
+    color: var(--bg);
+}
+
+#multiOptions {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+#multiTypeSelect {
+    width: 100%;
+    box-sizing: border-box;
+    border: 2px solid var(--tomato);
+    background: var(--bg);
+    color: var(--tomato);
+    font-size: 1rem;
+    font-family: inherit;
+    text-transform: lowercase;
+    padding: 10px;
+}
+
+.clear-btn {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 1rem;
 }
 
 input[type=range] {
