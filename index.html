@@ -49,6 +49,15 @@
                             <option value="synced">synced</option>
                             <option value="live">live</option>
                         </select>
+                        <div id="liveControls" class="hidden">
+                            <div class="live-controls-row">
+                                <button id="recordBtn" type="button" class="record-btn">⏺ record</button>
+                                <button id="stopRecordBtn" type="button" class="stop-record-btn hidden">⏹ stop recording</button>
+                            </div>
+                            <div id="recordingIndicator" class="recording-indicator hidden">
+                                <span class="rec-dot"></span> recording...
+                            </div>
+                        </div>
                         <button id="clearThrowsBtn" type="button" class="secondary-btn clear-btn hidden">clear throws</button>
                     </div>
                 </div>

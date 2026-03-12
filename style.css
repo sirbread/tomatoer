@@ -130,6 +130,23 @@ p {
     background: transparent;
 }
 
+.queued-marker .marker-label {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: 4px;
+    font-size: 0.65rem;
+    color: var(--tomato);
+    white-space: nowrap;
+    font-family: 'Comic Neue', 'Comic Sans MS', cursive;
+    text-transform: lowercase;
+    background: rgba(0, 0, 0, 0.75);
+    padding: 1px 4px;
+    border-radius: 3px;
+    pointer-events: none;
+}
+
 img { max-width: 100%; }
 
 .controls-row {
@@ -191,6 +208,56 @@ img { max-width: 100%; }
     width: 100%;
     padding: 10px 12px;
     font-size: 1rem;
+}
+
+/* live recording controls */
+.live-controls-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 4px;
+}
+
+.record-btn,
+.stop-record-btn {
+    flex: 1;
+    font-size: 1rem;
+    padding: 10px 12px;
+}
+
+.record-btn {
+    border-color: var(--tomato);
+}
+
+.record-btn.active {
+    background-color: var(--tomato);
+    color: var(--bg);
+}
+
+.stop-record-btn {
+    border-color: var(--tomato);
+}
+
+.recording-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.95rem;
+    color: var(--tomato);
+    margin-top: 6px;
+}
+
+.rec-dot {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    background: var(--tomato);
+    border-radius: 50%;
+    animation: rec-pulse 1s ease-in-out infinite;
+}
+
+@keyframes rec-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.2; }
 }
 
 input[type=range] {

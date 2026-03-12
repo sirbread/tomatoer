@@ -4,12 +4,11 @@ let croppedBlob = null;
 let targetPosX = 50; 
 let targetPosY = 50; 
 const BASE_MARKER_SIZE = 24;
-// tiny buffer so the last tomato frame does not get trimmed early
-const FINAL_DURATION_PADDING_SECONDS = 0.05;
 let throwMode = 'single';
 let multiThrowType = 'synced';
 let throwQueue = [];
 let liveThrowStartTime = null;
+let liveRecording = false;
 
 // steps
 const step1 = document.getElementById('step1');
@@ -47,6 +46,12 @@ const multiModeBtn = document.getElementById('multiModeBtn');
 const multiOptions = document.getElementById('multiOptions');
 const multiTypeSelect = document.getElementById('multiTypeSelect');
 const clearThrowsBtn = document.getElementById('clearThrowsBtn');
+
+// live recording elements
+const liveControls = document.getElementById('liveControls');
+const recordBtn = document.getElementById('recordBtn');
+const stopRecordBtn = document.getElementById('stopRecordBtn');
+const recordingIndicator = document.getElementById('recordingIndicator');
 
 // output
 const loading = document.getElementById('loading');
@@ -135,7 +140,33 @@ function updateMarkerSize() {
 function resetQueuedThrows() {
     throwQueue = [];
     liveThrowStartTime = null;
+    liveRecording = false;
     throwMarkers.innerHTML = '';
+    updateLiveControlsUi();
+}
+
+function updateLiveControlsUi() {
+    if (multiThrowType === 'live' && throwMode === 'multi') {
+        liveControls.classList.remove('hidden');
+    } else {
+        liveControls.classList.add('hidden');
+    }
+
+    if (liveRecording) {
+        recordBtn.classList.add('hidden');
+        stopRecordBtn.classList.remove('hidden');
+        recordingIndicator.classList.remove('hidden');
+        targetContainer.style.cursor = 'crosshair';
+    } else {
+        recordBtn.classList.remove('hidden');
+        stopRecordBtn.classList.add('hidden');
+        recordingIndicator.classList.add('hidden');
+        if (multiThrowType === 'live' && throwMode === 'multi') {
+            targetContainer.style.cursor = 'default';
+        } else {
+            targetContainer.style.cursor = 'crosshair';
+        }
+    }
 }
 
 function updateThrowUi() {
@@ -150,44 +181,46 @@ function updateThrowUi() {
         targetHelpText.textContent = 'click the image to place the target throw';
         clearThrowsBtn.classList.add('hidden');
         resetQueuedThrows();
+        updateLiveControlsUi();
         return;
     }
 
     const isLive = multiThrowType === 'live';
     targetHelpText.textContent = isLive
-        ? 'tap to queue throws in order (timed live), then hit tomato!'
+        ? 'hit record, then tap the image to place timed throws'
         : 'tap to add spots for tomatoes (all throws happen at once)';
     clearThrowsBtn.classList.remove('hidden');
+    updateLiveControlsUi();
 }
 
 function renderQueuedThrows() {
     throwMarkers.innerHTML = '';
     const markerSize = Math.max(16, Math.round(BASE_MARKER_SIZE * parseFloat(zoomSlider.value)));
 
-    throwQueue.forEach((throwPoint) => {
+    throwQueue.forEach((throwPoint, index) => {
         const marker = document.createElement('div');
         marker.className = 'queued-marker';
         marker.style.left = `${throwPoint.x}%`;
         marker.style.top = `${throwPoint.y}%`;
         marker.style.width = `${markerSize}px`;
         marker.style.height = `${markerSize}px`;
+
+        if (multiThrowType === 'live') {
+            const label = document.createElement('span');
+            label.className = 'marker-label';
+            label.textContent = `${throwPoint.delay.toFixed(1)}s`;
+            marker.appendChild(label);
+        }
+
+        if (multiThrowType === 'synced') {
+            const label = document.createElement('span');
+            label.className = 'marker-label';
+            label.textContent = `#${index + 1}`;
+            marker.appendChild(label);
+        }
+
         throwMarkers.appendChild(marker);
     });
-}
-
-function getGifDurationSeconds(gifData) {
-    let totalDelayHundredths = 0;
-
-    for (let i = 0; i <= gifData.length - 8; i += 1) {
-        if (gifData[i] === 0x21 && gifData[i + 1] === 0xF9 && gifData[i + 2] === 0x04) {
-            const delay = gifData[i + 4] + (gifData[i + 5] << 8);
-            totalDelayHundredths += delay;
-            i += 7;
-        }
-    }
-
-    if (totalDelayHundredths <= 0) return 1;
-    return totalDelayHundredths / 100;
 }
 
 speedSlider.addEventListener('input', (e) => speedValue.textContent = `${e.target.value}x`);
@@ -217,6 +250,28 @@ multiTypeSelect.addEventListener('change', (e) => {
 
 clearThrowsBtn.addEventListener('click', () => {
     resetQueuedThrows();
+    renderQueuedThrows();
+    updateLiveControlsUi();
+});
+
+// live record / stop
+recordBtn.addEventListener('click', () => {
+    throwQueue = [];
+    liveThrowStartTime = null;
+    throwMarkers.innerHTML = '';
+    liveRecording = true;
+    targetHelpText.textContent = 'tap the image to place throws... timestamps are live!';
+    updateLiveControlsUi();
+});
+
+stopRecordBtn.addEventListener('click', () => {
+    liveRecording = false;
+    if (throwQueue.length > 0) {
+        targetHelpText.textContent = `${throwQueue.length} throw${throwQueue.length === 1 ? '' : 's'} recorded! adjust size/speed, then hit tomato!`;
+    } else {
+        targetHelpText.textContent = 'hit record, then tap the image to place timed throws';
+    }
+    updateLiveControlsUi();
 });
 
 confirmCropBtn.addEventListener('click', () => {
@@ -236,6 +291,7 @@ confirmCropBtn.addEventListener('click', () => {
         throwMode = 'single';
         multiThrowType = 'synced';
         multiTypeSelect.value = 'synced';
+        liveRecording = false;
         updateThrowUi();
 
         showStep(step3);
@@ -258,22 +314,42 @@ targetContainer.addEventListener('click', (e) => {
         return;
     }
 
-    const timestamp = performance.now();
-    if (multiThrowType === 'live' && liveThrowStartTime === null) {
-        liveThrowStartTime = timestamp;
+    if (multiThrowType === 'synced') {
+        throwQueue.push({
+            x: (x / rect.width) * 100,
+            y: (y / rect.height) * 100,
+            delay: 0
+        });
+        renderQueuedThrows();
+        return;
     }
 
-    const delay = multiThrowType === 'live' ? (timestamp - liveThrowStartTime) / 1000 : 0;
-    throwQueue.push({
-        x: (x / rect.width) * 100,
-        y: (y / rect.height) * 100,
-        delay
-    });
-    renderQueuedThrows();
+    if (multiThrowType === 'live') {
+        if (!liveRecording) return;
+
+        const timestamp = performance.now();
+        if (liveThrowStartTime === null) {
+            liveThrowStartTime = timestamp;
+        }
+
+        const delay = (timestamp - liveThrowStartTime) / 1000;
+        throwQueue.push({
+            x: (x / rect.width) * 100,
+            y: (y / rect.height) * 100,
+            delay
+        });
+        renderQueuedThrows();
+        return;
+    }
 });
 
 processBtn.addEventListener('click', async () => {
     if (!ffmpeg || !ffmpeg.loaded) return alert("ffmpeg is still loading, chill");
+
+    if (liveRecording) {
+        liveRecording = false;
+        updateLiveControlsUi();
+    }
 
     const throwPlan = throwMode === 'single'
         ? [{ x: targetPosX, y: targetPosY, delay: 0 }]
@@ -297,49 +373,115 @@ processBtn.addEventListener('click', async () => {
 
         await ffmpeg.writeFile('bg.png', await fetchFile(croppedBlob));
         const tomatoGifData = await fetchFile(new URL('assets/tomato-throw.gif', baseURL).href);
-        await ffmpeg.writeFile('tomato.gif', tomatoGifData);
 
         const speed = parseFloat(speedSlider.value);
         const ptsFactor = 1 / speed;
         const zoom = parseFloat(zoomSlider.value);
         const gifSize = Math.round(720 * zoom);
-        const tomatoGifDurationSeconds = getGifDurationSeconds(tomatoGifData) * ptsFactor;
 
-        const filterParts = [];
-        if (throwPlan.length > 1) {
-            const splitOutputs = throwPlan.map((_, index) => `[gif_src_${index}]`).join('');
-            filterParts.push(`[1:v]split=${throwPlan.length}${splitOutputs}`);
-        }
+        // -----------------------------------------------------------
+        // single throw: exact working filter, untouched
+        // -----------------------------------------------------------
+        if (throwPlan.length === 1) {
+            await ffmpeg.writeFile('tomato.gif', new Uint8Array(tomatoGifData));
 
-        throwPlan.forEach((throwPoint, index) => {
-            const targetPixelX = (720 * (throwPoint.x / 100));
-            const targetPixelY = (720 * (throwPoint.y / 100));
+            const tp = throwPlan[0];
+            const targetPixelX = (720 * (tp.x / 100));
+            const targetPixelY = (720 * (tp.y / 100));
             const overlayX = Math.round(targetPixelX - (gifSize / 2));
             const overlayY = Math.round(targetPixelY - (gifSize / 2));
-            const streamLabel = `gif_${index}`;
-            const delayShift = throwPoint.delay > 0 ? `+${throwPoint.delay.toFixed(3)}/TB` : '';
-            const sourceLabel = throwPlan.length > 1 ? `gif_src_${index}` : '1:v';
-            filterParts.push(`[${sourceLabel}]setpts=${ptsFactor}*PTS${delayShift},scale=${gifSize}:${gifSize}[${streamLabel}]`);
-            const previousLabel = index === 0 ? '0:v' : `comp_${index - 1}`;
-            const composedLabel = `comp_${index}`;
-            filterParts.push(`[${previousLabel}][${streamLabel}]overlay=${overlayX}:${overlayY}:format=auto:eof_action=pass[${composedLabel}]`);
-        });
 
-        const maxDelay = throwPlan.reduce((currentMaxDelay, throwPoint) => Math.max(currentMaxDelay, throwPoint.delay || 0), 0);
-        const finalDuration = (maxDelay + tomatoGifDurationSeconds + FINAL_DURATION_PADDING_SECONDS).toFixed(3);
-        const finalComposite = `comp_${throwPlan.length - 1}`;
-        filterParts.push(`[${finalComposite}]trim=duration=${finalDuration},setpts=PTS-STARTPTS[composed]`);
-        filterParts.push('[composed]split[s0][s1]');
-        filterParts.push('[s0]palettegen[p]');
-        filterParts.push('[s1][p]paletteuse');
+            await ffmpeg.exec([
+                '-loop', '1',
+                '-i', 'bg.png',
+                '-i', 'tomato.gif',
+                '-filter_complex',
+                `[1:v]setpts=${ptsFactor}*PTS,scale=${gifSize}:${gifSize}[gif_scaled];` +
+                `[0:v][gif_scaled]overlay=${overlayX}:${overlayY}:format=auto:shortest=1[composed];` +
+                `[composed]split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse`,
+                '-y', 'output.gif'
+            ]);
+        }
+        // -----------------------------------------------------------
+        // multiple throws
+        // -----------------------------------------------------------
+        else {
+            // sort by delay so the last overlay = the throw that
+            // finishes last (shortest=1 on that one ends the output)
+            const sorted = throwPlan
+                .map((tp, i) => ({ ...tp, origIndex: i }))
+                .sort((a, b) => a.delay - b.delay);
 
-        await ffmpeg.exec([
-            '-loop', '1',
-            '-i', 'bg.png',
-            '-i', 'tomato.gif',
-            '-filter_complex', filterParts.join(';'),
-            '-y', 'output.gif'
-        ]);
+            // write a separate copy per throw — each writeFile needs
+            // its own Uint8Array because the ArrayBuffer gets detached
+            // (transferred to the worker) on each call
+            for (let i = 0; i < sorted.length; i++) {
+                await ffmpeg.writeFile(`tomato_${i}.gif`, new Uint8Array(tomatoGifData));
+            }
+
+            const inputArgs = ['-loop', '1', '-i', 'bg.png'];
+            for (let i = 0; i < sorted.length; i++) {
+                inputArgs.push('-i', `tomato_${i}.gif`);
+            }
+
+            const filterParts = [];
+
+            sorted.forEach((tp, index) => {
+                const inputIdx = index + 1;
+                const targetPixelX = (720 * (tp.x / 100));
+                const targetPixelY = (720 * (tp.y / 100));
+                const overlayX = Math.round(targetPixelX - (gifSize / 2));
+                const overlayY = Math.round(targetPixelY - (gifSize / 2));
+                const streamLabel = `gif_${index}`;
+                const isLast = index === sorted.length - 1;
+
+                // speed + delay shift
+                const throwDelay = tp.delay || 0;
+                let setptsExpr = `${ptsFactor}*PTS`;
+                if (throwDelay > 0.001) {
+                    setptsExpr += `+${throwDelay.toFixed(3)}/TB`;
+                }
+
+                filterParts.push(
+                    `[${inputIdx}:v]setpts=${setptsExpr},scale=${gifSize}:${gifSize}[${streamLabel}]`
+                );
+
+                const prevLabel = index === 0 ? '0:v' : `comp_${index - 1}`;
+                const compLabel = `comp_${index}`;
+
+                if (isLast) {
+                    // last overlay: shortest=1 ends output when this
+                    // gif finishes — mirrors the working single path
+                    filterParts.push(
+                        `[${prevLabel}][${streamLabel}]overlay=${overlayX}:${overlayY}:format=auto:shortest=1[${compLabel}]`
+                    );
+                } else {
+                    // earlier overlays: eof_action=repeat freezes the
+                    // splat on screen until the output ends
+                    filterParts.push(
+                        `[${prevLabel}][${streamLabel}]overlay=${overlayX}:${overlayY}:format=auto:eof_action=repeat[${compLabel}]`
+                    );
+                }
+            });
+
+            const finalComp = `comp_${sorted.length - 1}`;
+            filterParts.push(`[${finalComp}]split[s0][s1]`);
+            filterParts.push('[s0]palettegen[p]');
+            filterParts.push('[s1][p]paletteuse');
+
+            const filterStr = filterParts.join(';');
+            console.log("filter_complex:", filterStr);
+
+            await ffmpeg.exec([
+                ...inputArgs,
+                '-filter_complex', filterStr,
+                '-y', 'output.gif'
+            ]);
+
+            for (let i = 0; i < sorted.length; i++) {
+                try { await ffmpeg.deleteFile(`tomato_${i}.gif`); } catch (_) {}
+            }
+        }
 
         const data = await ffmpeg.readFile('output.gif');
         const outputBlob = new Blob([data.buffer], { type: 'image/gif' });
